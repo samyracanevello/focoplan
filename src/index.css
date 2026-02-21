@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-slate-800 antialiased bg-pastel-cream relative overflow-x-hidden;
+  }
+}
+
+@layer utilities {
+  .glassmorphism {
+    @apply bg-white/40 backdrop-blur-md border border-white/30 shadow-[0_4px_30px_rgba(0,0,0,0.02)];
+  }
+  
+  .glass-card {
+    @apply glassmorphism rounded-[20px] p-6 transition-all duration-300;
+  }
+
+  .glass-button {
+    @apply glassmorphism rounded-[14px] px-4 py-2 font-medium transition-all duration-200 hover:bg-white/60 active:scale-95;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-blush-peach hover:bg-gradient-blush-lavender transition-all duration-500;
+  }
+}
+
+/* Grain Effect Background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -2;
+  @apply bg-gradient-cream-peach opacity-50;
+}

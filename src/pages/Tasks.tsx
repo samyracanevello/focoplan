@@ -15,6 +15,7 @@ const Tasks = () => {
     const subjects = useSubjectsStore(state => state.subjects);
     const [filter, setFilter] = useState<FilterType>('all');
     const [search, setSearch] = useState('');
+    const [subjectFilter, setSubjectFilter] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -35,6 +36,10 @@ const Tasks = () => {
             if (!search.trim()) return true;
             const q = search.toLowerCase();
             return t.title.toLowerCase().includes(q) || (t.tag || '').toLowerCase().includes(q);
+        })
+        .filter(t => {
+            if (!subjectFilter) return true;
+            return t.subjectId === subjectFilter;
         })
         .sort((a, b) => {
             // Pinned tasks float to top
@@ -86,6 +91,20 @@ const Tasks = () => {
                         className="input w-full h-9 pl-9 text-sm"
                     />
                 </div>
+
+                {/* Subject filter */}
+                {subjects.length > 0 && (
+                    <select
+                        value={subjectFilter}
+                        onChange={e => setSubjectFilter(e.target.value)}
+                        className="input h-9 text-sm px-3 min-w-[140px]"
+                    >
+                        <option value="">Todas matérias</option>
+                        {subjects.map(s => (
+                            <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
+                        ))}
+                    </select>
+                )}
 
                 {/* Filter pills */}
                 <div className="card px-2 py-1.5 flex gap-1 w-fit">

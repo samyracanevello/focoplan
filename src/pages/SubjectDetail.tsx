@@ -34,7 +34,7 @@ const TopicItem = ({ topic, allTopics, depth }: TopicItemProps) => {
 
     const handleAdd = () => {
         if (!newTitle.trim()) return;
-        addTopic({ subjectId: topic.subjectId, parentId: topic.id, title: newTitle.trim() });
+        addTopic({ subjectId: topic.subjectId, parentId: topic.id, title: newTitle.trim(), order: 0, completed: false });
         setNewTitle('');
         setAdding(false);
         setExpanded(true);
@@ -181,7 +181,7 @@ const SubjectDetail = () => {
 
     const handleAddRoot = () => {
         if (!newTitle.trim()) return;
-        addTopic({ subjectId: subject.id, parentId: null, title: newTitle.trim() });
+        addTopic({ subjectId: subject.id, parentId: null, title: newTitle.trim(), order: 0, completed: false });
         setNewTitle('');
     };
 

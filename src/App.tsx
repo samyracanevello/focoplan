@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
@@ -15,6 +16,13 @@ import Flashcards from './pages/Flashcards';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import { useUserStore } from './store/useUserStore';
+import { useSubjectsStore } from './store/useSubjectsStore';
+import { useTopicsStore } from './store/useTopicsStore';
+import { useTaskStore } from './store/useTaskStore';
+import { useFlashcardsStore } from './store/useFlashcardsStore';
+import { useGoalsStore } from './store/useGoalsStore';
+import { useEventsStore } from './store/useEventsStore';
+import { usePomodoroStore } from './store/usePomodoroStore';
 
 const OnboardingRoute = ({ children }: { children: JSX.Element }) => {
     const { name, hasSeenOnboarding } = useUserStore();
@@ -24,6 +32,22 @@ const OnboardingRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 function App() {
+    const { isSupabaseAuth } = useUserStore();
+
+    // Fetch all data from Supabase on login
+    useEffect(() => {
+        if (!isSupabaseAuth) return;
+        Promise.all([
+            useSubjectsStore.getState().fetchFromSupabase(),
+            useTopicsStore.getState().fetchFromSupabase(),
+            useTaskStore.getState().fetchFromSupabase(),
+            useFlashcardsStore.getState().fetchFromSupabase(),
+            useGoalsStore.getState().fetchFromSupabase(),
+            useEventsStore.getState().fetchFromSupabase(),
+            usePomodoroStore.getState().fetchFromSupabase(),
+        ]).catch(console.error);
+    }, [isSupabaseAuth]);
+
     return (
         <Router>
             <Routes>

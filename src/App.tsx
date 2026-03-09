@@ -11,6 +11,7 @@ import Stats from './pages/Stats';
 import Goals from './pages/Goals';
 import Subjects from './pages/Subjects';
 import SubjectDetail from './pages/SubjectDetail';
+import Flashcards from './pages/Flashcards';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import { useUserStore } from './store/useUserStore';
@@ -35,6 +36,7 @@ function App() {
                     <Route path="tasks" element={<Tasks />} />
                     <Route path="subjects" element={<Subjects />} />
                     <Route path="subjects/:id" element={<SubjectDetail />} />
+                    <Route path="flashcards" element={<Flashcards />} />
                     <Route path="calendar" element={<CalendarView />} />
                     <Route path="pomodoro" element={<Pomodoro />} />
                     <Route path="stats" element={<Stats />} />

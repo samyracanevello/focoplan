@@ -14,6 +14,7 @@ import { usePomodoroStore } from '../store/usePomodoroStore';
 import { useGoalsStore } from '../store/useGoalsStore';
 import { useSubjectsStore } from '../store/useSubjectsStore';
 import { useTopicsStore } from '../store/useTopicsStore';
+import { useFlashcardsStore } from '../store/useFlashcardsStore';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -71,6 +72,7 @@ const SettingsPage = () => {
     const goals = useGoalsStore(state => state.goals);
     const subjects = useSubjectsStore(state => state.subjects);
     const topicsList = useTopicsStore(state => state.topics);
+    const flashcardsList = useFlashcardsStore(state => state.flashcards);
 
     const [editingName, setEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(name || '');
@@ -98,8 +100,9 @@ const SettingsPage = () => {
             goals,
             subjects,
             topics: topicsList,
+            flashcards: flashcardsList,
             exportedAt: new Date().toISOString(),
-            version: '1.2',
+            version: '1.3',
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -136,6 +139,7 @@ const SettingsPage = () => {
                 if (data.goals) useGoalsStore.getState().setGoals(data.goals);
                 if (data.subjects) useSubjectsStore.getState().setSubjects(data.subjects);
                 if (data.topics) useTopicsStore.getState().setTopics(data.topics);
+                if (data.flashcards) useFlashcardsStore.getState().setFlashcards(data.flashcards);
                 alert('✅ Dados importados com sucesso!');
             } catch {
                 alert('Erro ao ler o arquivo. Verifique se é um JSON válido.');
@@ -378,7 +382,7 @@ const SettingsPage = () => {
                                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl mb-4">
                                     <div className="text-sm">
                                         <p className="font-semibold text-slate-700">Resumo dos dados</p>
-                                        <p className="text-slate-400 mt-1">{tasks.length} tarefas · {sessions.length} sessões · {goals.length} metas · {subjects.length} matérias · {topicsList.length} tópicos</p>
+                                        <p className="text-slate-400 mt-1">{tasks.length} tarefas · {sessions.length} sessões · {goals.length} metas · {subjects.length} matérias · {flashcardsList.length} flashcards</p>
                                     </div>
                                     <Button onClick={handleExport}>
                                         <Download size={16} className="mr-2" /> Baixar JSON

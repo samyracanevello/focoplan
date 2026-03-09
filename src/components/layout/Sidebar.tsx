@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, CheckSquare, Calendar, Clock,
-    BarChart2, Target, Settings, BookOpen, LogOut, Bell, GraduationCap
+    BarChart2, Target, Settings, BookOpen, LogOut, Bell, GraduationCap, Layers
 } from 'lucide-react';
 import { useUserStore } from '../../store/useUserStore';
 import { useNotificationsStore } from '../../store/useNotificationsStore';
@@ -9,6 +9,7 @@ import { useNotificationsStore } from '../../store/useNotificationsStore';
 const navItems = [
     { path: '/dashboard', label: 'Painel', icon: LayoutDashboard },
     { path: '/subjects', label: 'Matérias', icon: GraduationCap },
+    { path: '/flashcards', label: 'Flashcards', icon: Layers },
     { path: '/tasks', label: 'Tarefas', icon: CheckSquare },
     { path: '/calendar', label: 'Calendário', icon: Calendar },
     { path: '/pomodoro', label: 'Pomodoro', icon: Clock },

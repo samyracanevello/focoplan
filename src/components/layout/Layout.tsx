@@ -23,7 +23,8 @@ const Layout = () => {
     /* ── Dynamic page title ────────────────────────────────────────────────── */
     useEffect(() => {
         const titles: Record<string, string> = {
-            '/dashboard': 'Painel', '/subjects': 'Matérias', '/tasks': 'Tarefas',
+            '/dashboard': 'Painel', '/subjects': 'Matérias', '/flashcards': 'Flashcards',
+            '/tasks': 'Tarefas',
             '/calendar': 'Calendário', '/pomodoro': 'Pomodoro', '/stats': 'Estatísticas',
             '/goals': 'Metas', '/notifications': 'Notificações', '/settings': 'Configurações',
         };

@@ -5,14 +5,17 @@ interface CardProps {
     className?: string;
     title?: string;
     action?: React.ReactNode;
+    hover?: boolean;
+    glass?: boolean;
+    onClick?: () => void;
 }
 
-const Card = ({ children, className = '', title, action }: CardProps) => {
+const Card = ({ children, className = '', title, action, hover = false, glass = false, onClick }: CardProps) => {
     return (
-        <div className={`glass-card bg-white/60 ${className}`}>
+        <div onClick={onClick} className={`${glass ? 'card-glass' : 'card'} p-6 ${hover ? 'hover:-translate-y-0.5 hover:shadow-lg cursor-pointer' : ''} transition-all duration-300 ${className}`}>
             {(title || action) && (
-                <div className="flex items-center justify-between mb-4">
-                    {title && <h3 className="text-lg font-semibold text-slate-800">{title}</h3>}
+                <div className="flex items-center justify-between mb-5">
+                    {title && <h3 className="text-base font-bold text-slate-700 tracking-tight">{title}</h3>}
                     {action && <div>{action}</div>}
                 </div>
             )}

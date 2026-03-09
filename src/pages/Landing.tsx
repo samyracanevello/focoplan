@@ -1,4 +1,3 @@
-import React from 'react';
 import { BookOpen, Check, ArrowRight, Star } from 'lucide-react';
 import Button from '../components/ui/Button';
 
@@ -93,7 +92,7 @@ const Landing = () => {
 
             <footer className="py-12 border-t border-white/40 glassmorphism relative z-10">
                 <div className="max-w-7xl mx-auto px-6 text-center text-slate-500 text-sm">
-                    <p>© 2024 FocoPlan. Calm Productivity Tool. Todos os direitos reservados.</p>
+                    <p>© 2025 FocoPlan. Calm Productivity Tool. Todos os direitos reservados.</p>
                 </div>
             </footer>
         </div>

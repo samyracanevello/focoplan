@@ -1,67 +1,114 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Calendar, Clock, BarChart2, Target, DownloadCloud, Settings, BookOpen } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+    LayoutDashboard, CheckSquare, Calendar, Clock,
+    BarChart2, Target, Settings, BookOpen, LogOut, Bell, GraduationCap
+} from 'lucide-react';
+import { useUserStore } from '../../store/useUserStore';
+import { useNotificationsStore } from '../../store/useNotificationsStore';
 
 const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/dashboard', label: 'Painel', icon: LayoutDashboard },
+    { path: '/subjects', label: 'Matérias', icon: GraduationCap },
     { path: '/tasks', label: 'Tarefas', icon: CheckSquare },
     { path: '/calendar', label: 'Calendário', icon: Calendar },
     { path: '/pomodoro', label: 'Pomodoro', icon: Clock },
-    { path: '/stats', label: 'Stats', icon: BarChart2 },
+    { path: '/stats', label: 'Estatísticas', icon: BarChart2 },
     { path: '/goals', label: 'Metas', icon: Target },
 ];
 
 const bottomItems = [
-    { path: '/export', label: 'Exportar/Backup', icon: DownloadCloud },
-    { path: '/settings', label: 'Settings', icon: Settings },
+    { path: '/notifications', label: 'Notificações', icon: Bell },
+    { path: '/settings', label: 'Configurações', icon: Settings },
 ];
 
 const Sidebar = () => {
+    const { name, logout } = useUserStore();
+    const navigate = useNavigate();
+    const unreadCount = useNotificationsStore(state => state.notifications.filter(n => !n.read).length);
+
+    const handleLogout = () => { logout(); navigate('/auth'); };
+
+    const initials = (name || 'U').slice(0, 2).toUpperCase();
+
     return (
-        <aside className="w-64 flex flex-col glassmorphism bg-white/60 border-r border-white/40 m-4 rounded-[24px] shadow-sm">
-            <div className="p-6 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-blush-mint flex items-center justify-center text-white shadow-sm">
-                    <BookOpen size={24} strokeWidth={1.5} />
+        <aside className="sidebar w-60 flex flex-col m-3 rounded-[28px] z-20 relative overflow-hidden">
+            {/* Subtle orb decoration */}
+            <div className="orb w-40 h-40 -top-10 -left-10 opacity-20" style={{ background: 'radial-gradient(circle, #F2B8C6, transparent)' }} />
+
+            {/* Brand */}
+            <div className="relative px-5 pt-6 pb-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl gradient-hero flex items-center justify-center shadow-md flex-shrink-0">
+                    <BookOpen size={18} strokeWidth={2} className="text-white" />
                 </div>
-                <span className="font-bold text-xl tracking-tight text-slate-800">FocoPlan</span>
+                <div>
+                    <span className="font-extrabold text-lg tracking-tight text-slate-800">FocoPlan</span>
+                </div>
             </div>
 
-            <nav className="flex-1 px-4 py-4 space-y-1">
-                <div className="mb-4 px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Menu Principal</div>
-                {navItems.map((item) => (
+            {/* Divider */}
+            <div className="divider mx-4 mb-4" />
+
+            {/* Main Nav */}
+            <nav className="flex-1 px-3 space-y-0.5 relative">
+                <p className="section-title">Menu Principal</p>
+                {navItems.map(item => (
                     <NavLink
                         key={item.path}
                         to={item.path}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-3 py-2.5 rounded-[12px] font-medium transition-all duration-200 ${isActive
-                                ? 'bg-white shadow-sm text-pastel-mint border border-white/50'
-                                : 'text-slate-500 hover:bg-white/40 hover:text-slate-700'
-                            }`
+                            `nav-link ${isActive ? 'active' : ''}`
                         }
                     >
-                        <item.icon size={20} className="opacity-90" strokeWidth={1.5} />
-                        {item.label}
+                        <item.icon size={18} strokeWidth={1.8} className="flex-shrink-0" />
+                        <span className="text-sm">{item.label}</span>
                     </NavLink>
                 ))}
             </nav>
 
-            <div className="p-4 mt-auto border-t border-white/20">
-                <div className="space-y-1">
-                    {bottomItems.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-3 py-2.5 rounded-[12px] font-medium transition-all duration-200 text-sm ${isActive
-                                    ? 'bg-white shadow-sm text-pastel-mint border border-white/50'
-                                    : 'text-slate-500 hover:bg-white/40 hover:text-slate-700'
-                                }`
-                            }
-                        >
-                            <item.icon size={18} className="opacity-80" strokeWidth={1.5} />
-                            {item.label}
-                        </NavLink>
-                    ))}
+            {/* Bottom Nav */}
+            <div className="px-3 pb-3 space-y-0.5">
+                <div className="divider mb-3" />
+                <p className="section-title">Conta</p>
+
+                {bottomItems.map(item => (
+                    <NavLink
+                        key={item.path}
+                        to={item.path}
+                        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    >
+                        <div className="relative flex-shrink-0">
+                            <item.icon size={17} strokeWidth={1.8} />
+                            {item.path === '/notifications' && unreadCount > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-pastel-coral text-white text-[8px] font-bold rounded-full flex items-center justify-center leading-none">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-sm">{item.label}</span>
+                        {item.path === '/notifications' && unreadCount > 0 && (
+                            <span className="ml-auto badge" style={{ background: 'rgba(238,144,144,0.12)', color: '#EE9090' }}>
+                                {unreadCount}
+                            </span>
+                        )}
+                    </NavLink>
+                ))}
+
+                {/* User row */}
+                <div className="mt-3 pt-3 border-t border-pastel-border/50 flex items-center gap-3 px-2 group">
+                    <div className="w-8 h-8 rounded-xl gradient-hero flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
+                        {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-700 truncate leading-tight">{name}</p>
+                        <p className="text-[11px] text-pastel-muted">Conta local</p>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        title="Sair"
+                        className="p-1.5 rounded-lg text-pastel-muted hover:text-pastel-coral hover:bg-red-50 transition-all duration-200"
+                    >
+                        <LogOut size={14} />
+                    </button>
                 </div>
             </div>
         </aside>

@@ -1,145 +1,225 @@
-import React from 'react';
-import { Play, CheckCircle2, Clock, Flame, ArrowRight } from 'lucide-react';
+import { useMemo } from 'react';
+import { CheckCircle2, Play, TrendingUp, Calendar as CalendarIcon, ArrowRight, Target, Quote } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { isToday, isFuture } from 'date-fns';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-
-const mockTasks = [
-    { id: 1, title: 'Revisão de Contabilidade de Custos para o CRC', tag: 'Exame 24/05', tagColor: 'bg-pastel-lavender', priority: 'high', duration: '60 min' },
-    { id: 2, title: 'Fichamento de artigos sobre perfil de egressos', tag: 'TCC', tagColor: 'bg-pastel-mint', priority: 'medium', duration: '120 min' },
-    { id: 3, title: 'Reunião de orientação com a Prof. Cléia', tag: 'TCC', tagColor: 'bg-pastel-mint', priority: 'low', status: 'completed' },
-];
+import { useUserStore } from '../store/useUserStore';
+import { useTaskStore } from '../store/useTaskStore';
+import { usePomodoroStore } from '../store/usePomodoroStore';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { getDailyQuote } from '../data/quotes';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
+    const { name } = useUserStore();
+    const { tasks, toggleTaskStatus } = useTaskStore();
+    const { sessions } = usePomodoroStore();
+    const showQuotes = useSettingsStore(s => s.appearance.showMotivationalQuotes);
+    const dailyQuote = getDailyQuote();
+
+    const todayTasks = useMemo(() => tasks.filter(t => t.date && isToday(new Date(t.date))), [tasks]);
+    const pendingTodayTasks = useMemo(() => todayTasks.filter(t => t.status === 'pending'), [todayTasks]);
+    const upcomingTasks = useMemo(() =>
+        tasks.filter(t => t.date && isFuture(new Date(t.date)) && t.status === 'pending').slice(0, 3),
+        [tasks]);
+
+    const todaySessions = useMemo(() =>
+        sessions.filter(s => isToday(new Date(s.completedAt)) && s.type === 'focus'),
+        [sessions]);
+    const totalFocusMinutesToday = useMemo(() =>
+        todaySessions.reduce((acc, curr) => acc + curr.durationMinutes, 0),
+        [todaySessions]);
+
     return (
-        <div className="space-y-6 pt-2 pb-12 max-w-7xl mx-auto">
-            {/* Greeting Section */}
-            <section className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="p-8 max-w-7xl mx-auto w-full">
+            {/* Greeting */}
+            <div className="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
-                        Bom dia, <span className="text-gradient">Alex!</span> 👋
+                    <h1 className="text-4xl font-bold text-slate-800 tracking-tight mb-2">
+                        Olá, {name || 'Estudante'} <span className="text-pastel-peach">👋</span>
                     </h1>
-                    <p className="text-slate-500 font-medium text-lg">Pronto para mais um dia de foco?</p>
+                    <p className="text-lg text-slate-500">
+                        Pronto para mais um dia de foco? Você tem{' '}
+                        <span className="font-semibold text-pastel-mint">{pendingTodayTasks.length}</span> tarefas planejadas hoje.
+                    </p>
                 </div>
-                <div className="glass-card py-3 px-5 flex items-center gap-3 bg-white/70">
-                    <div className="p-2 bg-pastel-amber/20 rounded-xl text-amber-600">
-                        <Flame size={20} strokeWidth={2} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-slate-700">Meta Diária</p>
-                        <p className="text-xs text-slate-500">4 de 6 sessões concluídas</p>
-                    </div>
-                </div>
-            </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Content - Takes 2 cols */}
-                <div className="lg:col-span-2 space-y-6">
-                    <Card title="Próximas Tarefas" action={<Button variant="ghost" size="sm">Ver Todas <ArrowRight size={16} className="ml-1" /></Button>}>
-                        <div className="space-y-3">
-                            {mockTasks.map((task) => (
-                                <div
-                                    key={task.id}
-                                    className={`flex items-start md:items-center justify-between p-4 rounded-[16px] border transition-all duration-200 ${task.status === 'completed'
-                                            ? 'bg-slate-50/50 border-slate-100 opacity-60'
-                                            : 'bg-white/80 border-white/60 hover:border-pastel-peach/50 hover:shadow-sm'
-                                        }`}
+                {/* Daily quote */}
+                {showQuotes && (
+                    <div className="card p-4 max-w-sm flex-shrink-0 border-l-4 border-l-pastel-coral">
+                        <div className="flex gap-3">
+                            <Quote size={18} className="text-pastel-coral flex-shrink-0 mt-0.5 opacity-70" />
+                            <div>
+                                <p className="text-sm text-slate-600 italic leading-relaxed">"{dailyQuote.text}"</p>
+                                <p className="text-xs text-pastel-muted mt-1.5 font-medium">— {dailyQuote.author}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Top Grid: Focus CTA + Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+                {/* Main Focus Area */}
+                <div className="lg:col-span-8">
+                    <Card className="h-full bg-gradient-blush-mint text-white border-0 shadow-lg relative overflow-hidden flex flex-col justify-between p-8 md:p-10 min-h-[300px]">
+                        <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/20 rounded-full blur-2xl pointer-events-none" />
+                        <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-white/10 rounded-full blur-xl pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col items-start gap-4 h-full">
+                            <div className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-sm font-medium border border-white/30 flex items-center gap-2">
+                                <Target size={16} /> Próxima Tarefa Sugerida
+                            </div>
+
+                            <div className="mt-4 mb-8">
+                                <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3">
+                                    {pendingTodayTasks.length > 0 ? pendingTodayTasks[0].title : 'Sessão de Foco Livre'}
+                                </h2>
+                                <p className="text-white/80 text-lg">
+                                    {pendingTodayTasks.length > 0
+                                        ? `Duração sugerida: ${pendingTodayTasks[0].durationMinutes || 25} minutos`
+                                        : 'Nenhuma tarefa pendente para hoje. Que tal revisar algo?'}
+                                </p>
+                            </div>
+
+                            <div className="mt-auto">
+                                <Button
+                                    size="lg"
+                                    className="bg-white text-emerald-700 hover:bg-slate-50 shadow-xl border-0 group"
+                                    onClick={() => navigate('/pomodoro')}
                                 >
-                                    <div className="flex flex-col md:flex-row md:items-center gap-3 flex-1">
-                                        <button className={`mt-0.5 md:mt-0 flex-shrink-0 ${task.status === 'completed' ? 'text-pastel-mint' : 'text-slate-300 hover:text-pastel-mint cursor-pointer transition-colors'}`}>
-                                            <CheckCircle2 size={22} strokeWidth={task.status === 'completed' ? 2 : 1.5} />
-                                        </button>
-                                        <div>
-                                            <h4 className={`font-medium ${task.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                                                {task.title}
-                                            </h4>
-                                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                                <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-semibold text-slate-600 ${task.tagColor}/60`}>
-                                                    {task.tag}
-                                                </span>
-                                                {task.duration && (
-                                                    <span className="flex items-center text-xs text-slate-500 gap-1">
-                                                        <Clock size={12} /> {task.duration}
-                                                    </span>
-                                                )}
-                                                {task.priority === 'high' && (
-                                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-pastel-coral/20 text-red-600">Alta Prioridade</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <Play size={20} className="mr-2 group-hover:scale-110 transition-transform text-emerald-600 fill-emerald-600" />
+                                    Iniciar Pomodoro
+                                </Button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
 
-                                    {task.status !== 'completed' && (
-                                        <button className="hidden md:flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-pastel-coral hover:bg-pastel-coral/10 transition-colors ml-4">
-                                            <Play size={18} fill="currentColor" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                {/* Stats */}
+                <div className="lg:col-span-4 grid grid-rows-2 gap-6">
+                    <Card className="flex flex-col justify-center p-6 bg-white/70">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-3 bg-pastel-mint/20 text-emerald-700 rounded-2xl">
+                                <CheckCircle2 size={24} strokeWidth={1.5} />
+                            </div>
+                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Hoje</span>
+                        </div>
+                        <div>
+                            <p className="text-slate-500 font-medium text-sm mb-1">Tarefas Concluídas</p>
+                            <h3 className="text-3xl font-bold text-slate-800 tracking-tight">
+                                {todayTasks.filter(t => t.status === 'completed').length}{' '}
+                                <span className="text-lg text-slate-400 font-medium">/ {todayTasks.length}</span>
+                            </h3>
                         </div>
                     </Card>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card title="Plano de Hoje" className="bg-gradient-to-br from-white/80 to-pastel-cream/30">
-                            <div className="mb-4">
-                                <div className="flex justify-between text-sm mb-2 text-slate-600">
-                                    <span>Progresso</span>
-                                    <span className="font-semibold text-pastel-coral">65%</span>
-                                </div>
-                                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                    <div className="bg-gradient-blush-peach h-2.5 rounded-full" style={{ width: '65%' }}></div>
-                                </div>
+                    <Card className="flex flex-col justify-center p-6 bg-white/70">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="p-3 bg-pastel-peach/20 text-orange-700 rounded-2xl">
+                                <TrendingUp size={24} strokeWidth={1.5} />
                             </div>
-                            <ul className="space-y-2 mt-6">
-                                <li className="flex items-center gap-3 text-sm text-slate-600 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-pastel-mint">
-                                    2 sessões de foco (TCC)
-                                </li>
-                                <li className="flex items-center gap-3 text-sm text-slate-600 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-pastel-mint">
-                                    1 simulado (CRC)
-                                </li>
-                                <li className="flex items-center gap-3 text-sm text-slate-400 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-slate-300">
-                                    Revisar anotações
-                                </li>
-                            </ul>
-                        </Card>
+                            <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">Tempo</span>
+                        </div>
+                        <div>
+                            <p className="text-slate-500 font-medium text-sm mb-1">Foco Hoje</p>
+                            <h3 className="text-3xl font-bold text-slate-800 tracking-tight">
+                                {Math.floor(totalFocusMinutesToday / 60)}h{' '}
+                                <span className="text-lg text-slate-400 font-medium">{totalFocusMinutesToday % 60}m</span>
+                            </h3>
+                        </div>
+                    </Card>
+                </div>
+            </div>
 
-                        <Card className="bg-gradient-blush-mint flex items-center justify-center relative overflow-hidden group cursor-pointer border-none pb-0">
-                            <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <div className="text-center text-white z-10 py-6">
-                                <div className="bg-white/30 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-md">
-                                    <Play size={32} fill="currentColor" />
-                                </div>
-                                <h3 className="text-xl font-bold mb-1">Iniciar Pomodoro</h3>
-                                <p className="text-white/80 text-sm">Próxima: Contabilidade</p>
-                            </div>
-                        </Card>
+            {/* Bottom Grid: Today's Tasks + Upcoming */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Today's Tasks */}
+                <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <CalendarIcon size={20} className="text-slate-400" /> Plano de Hoje
+                        </h3>
+                        <Button variant="ghost" size="sm" className="text-pastel-coral hover:text-red-500" onClick={() => navigate('/tasks')}>
+                            Ver todas <ArrowRight size={16} className="ml-1" />
+                        </Button>
                     </div>
+
+                    <Card className="p-2 bg-white/60">
+                        <div className="divide-y divide-slate-100">
+                            {todayTasks.length === 0 ? (
+                                <div className="p-6 text-center text-slate-500 text-sm">
+                                    <p>Nenhuma tarefa agendada para hoje.</p>
+                                    <Button variant="ghost" size="sm" className="mt-2" onClick={() => navigate('/tasks')}>
+                                        + Adicionar tarefa
+                                    </Button>
+                                </div>
+                            ) : (
+                                todayTasks.map(task => (
+                                    <div key={task.id} className="p-4 flex items-center justify-between group hover:bg-white/50 transition-colors rounded-xl">
+                                        <div className="flex items-center gap-4">
+                                            <button
+                                                onClick={() => toggleTaskStatus(task.id)}
+                                                className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${task.status === 'completed'
+                                                    ? 'bg-pastel-mint border-pastel-mint text-white'
+                                                    : 'border-slate-300 group-hover:border-pastel-mint bg-white'
+                                                    }`}
+                                            >
+                                                {task.status === 'completed' && <CheckCircle2 size={16} strokeWidth={3} />}
+                                            </button>
+                                            <div>
+                                                <p className={`font-semibold ${task.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                                                    {task.title}
+                                                </p>
+                                                <p className="text-xs text-slate-500 mt-0.5">{task.tag} • {task.durationMinutes || 25} min</p>
+                                            </div>
+                                        </div>
+                                        {task.status === 'pending' && (
+                                            <button
+                                                onClick={() => navigate('/pomodoro')}
+                                                className="opacity-0 group-hover:opacity-100 p-2 text-pastel-mint hover:bg-emerald-50 rounded-lg transition-all"
+                                            >
+                                                <Play size={18} className="fill-pastel-mint" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </Card>
                 </div>
 
-                {/* Sidebar Data - Takes 1 col */}
-                <div className="space-y-6">
-                    <Card title="Tempo Focado">
-                        <div className="text-center py-6">
-                            <div className="relative inline-flex items-center justify-center">
-                                {/* CSS Circle Chart Mock */}
-                                <div className="w-32 h-32 rounded-full border-8 border-slate-100 flex items-center justify-center relative">
-                                    <div className="absolute inset-0 rounded-full border-8 border-pastel-mint border-t-transparent border-r-transparent transform -rotate-45"></div>
-                                    <div className="text-center">
-                                        <span className="block text-2xl font-bold text-slate-700">3.5<span className="text-lg">h</span></span>
-                                        <span className="block text-[10px] text-slate-400 uppercase tracking-widest mt-1">Hoje</span>
+                {/* Upcoming Tasks */}
+                <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-slate-800">Próximos Dias</h3>
+                    </div>
+                    <Card className="p-4 bg-white/60 space-y-3">
+                        {upcomingTasks.length === 0 ? (
+                            <div className="p-6 text-center text-slate-500 text-sm">
+                                <p>Nenhuma tarefa futura pendente.</p>
+                            </div>
+                        ) : (
+                            upcomingTasks.map(task => (
+                                <div key={task.id} className="p-4 bg-white border border-slate-100 rounded-[16px] shadow-sm flex justify-between items-center group hover:border-pastel-peach/50 transition-colors">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`w-2 h-2 rounded-full ${task.priority === 'high' ? 'bg-red-400' :
+                                                task.priority === 'medium' ? 'bg-orange-400' : 'bg-emerald-400'
+                                                }`} />
+                                            <p className="font-semibold text-slate-700 text-sm">{task.title}</p>
+                                        </div>
+                                        <p className="text-xs text-slate-400 ml-4">
+                                            {task.tag} • {task.date ? new Date(task.date).toLocaleDateString('pt-BR') : ''}
+                                        </p>
+                                    </div>
+                                    <div className="text-xs font-medium px-2 py-1 bg-slate-50 text-slate-500 rounded-md">
+                                        {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                            <div className="text-center p-3 rounded-xl bg-slate-50/50">
-                                <span className="block text-xs text-slate-500 mb-1">Semana</span>
-                                <span className="block text-lg font-semibold text-slate-700">12h</span>
-                            </div>
-                            <div className="text-center p-3 rounded-xl bg-slate-50/50">
-                                <span className="block text-xs text-slate-500 mb-1">Média</span>
-                                <span className="block text-lg font-semibold text-slate-700">4h/dia</span>
-                            </div>
-                        </div>
+                            ))
+                        )}
                     </Card>
                 </div>
             </div>

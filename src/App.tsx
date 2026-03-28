@@ -49,7 +49,7 @@ function App() {
     }, [isSupabaseAuth]);
 
     return (
-        <Router>
+        <Router basename="/focoplan/">
             <Routes>
                 <Route path="/landing" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />

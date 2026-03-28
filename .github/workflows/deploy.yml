@@ -38,3 +38,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist # A pasta de saída do vite após o 'npm run build'
           publish_branch: gh-pages # Vai jogar o código do dist para essa branch separada para hospedar o site!
+          cname: focoplan.tech

@@ -19,7 +19,6 @@ const copyIndexTo404Plugin = () => {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: '/focoplan/',
     plugins: [react(), copyIndexTo404Plugin()],
     resolve: {
         alias: {

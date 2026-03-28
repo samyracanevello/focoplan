@@ -129,7 +129,7 @@ const Landing = () => {
                     <div className="p-2 md:p-3 rounded-[28px] bg-white/50 border border-white/40 shadow-2xl shadow-slate-200/50 backdrop-blur-sm">
                         <div className="rounded-[20px] overflow-hidden aspect-[16/10] relative bg-slate-100 flex items-center justify-center">
                             <img 
-                                src="/dashboard-preview.png" 
+                                src="/dashboard-app.png" 
                                 alt="Dashboard do FocoPlan" 
                                 className="w-full h-full object-cover"
                             />

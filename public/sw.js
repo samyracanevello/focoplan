@@ -1,4 +1,4 @@
-const CACHE_NAME = 'focoplan-v4';
+const CACHE_NAME = 'focoplan-v5';
 const PRECACHE_URLS = [
   '/',
   '/index.html',

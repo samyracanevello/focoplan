@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
+import { tasksService } from '../services/tasksService';
 
 export type TaskPriority = 'low' | 'medium' | 'high';
 export type TaskStatus = 'pending' | 'completed';
@@ -49,20 +50,9 @@ export const useTaskStore = create<TaskState>()(
 
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('tasks').insert({
-                            id: newTask.id,
-                            user_id: auth.user.id,
-                            title: newTask.title,
-                            description: newTask.description || null,
-                            subject_id: newTask.subjectId || null,
-                            tag: newTask.tag,
-                            tag_color: newTask.tagColor,
-                            priority: newTask.priority,
-                            status: newTask.status,
-                            date: newTask.date || null,
-                            duration_minutes: newTask.durationMinutes,
-                            pinned: newTask.pinned || false,
-                        }).then(({ error }) => { if (error) console.error('Supabase insert task:', error); });
+                        tasksService.addTask(auth.user.id, newTask).catch((err) => {
+                            console.error('Failed to add task to Supabase:', err);
+                        });
                     }
                 });
             },
@@ -74,21 +64,9 @@ export const useTaskStore = create<TaskState>()(
 
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        const dbUpdates: Record<string, unknown> = {};
-                        if (updates.title !== undefined) dbUpdates.title = updates.title;
-                        if (updates.description !== undefined) dbUpdates.description = updates.description;
-                        if (updates.subjectId !== undefined) dbUpdates.subject_id = updates.subjectId;
-                        if (updates.tag !== undefined) dbUpdates.tag = updates.tag;
-                        if (updates.tagColor !== undefined) dbUpdates.tag_color = updates.tagColor;
-                        if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
-                        if (updates.status !== undefined) dbUpdates.status = updates.status;
-                        if (updates.date !== undefined) dbUpdates.date = updates.date;
-                        if (updates.durationMinutes !== undefined) dbUpdates.duration_minutes = updates.durationMinutes;
-                        if (updates.pinned !== undefined) dbUpdates.pinned = updates.pinned;
-                        if (Object.keys(dbUpdates).length > 0) {
-                            supabase.from('tasks').update(dbUpdates).eq('id', id)
-                                .then(({ error }) => { if (error) console.error('Supabase update task:', error); });
-                        }
+                        tasksService.updateTask(auth.user.id, id, updates).catch((err) => {
+                            console.error('Failed to update task in Supabase:', err);
+                        });
                     }
                 });
             },
@@ -97,8 +75,9 @@ export const useTaskStore = create<TaskState>()(
                 set((state) => ({ tasks: state.tasks.filter(t => t.id !== id) }));
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('tasks').delete().eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase delete task:', error); });
+                        tasksService.deleteTask(auth.user.id, id).catch((err) => {
+                            console.error('Failed to delete task from Supabase:', err);
+                        });
                     }
                 });
             },
@@ -112,8 +91,9 @@ export const useTaskStore = create<TaskState>()(
                 }));
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('tasks').update({ status: newStatus }).eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase toggle task:', error); });
+                        tasksService.updateTask(auth.user.id, id, { status: newStatus }).catch((err: any) => {
+                            console.error('Failed to toggle task status in Supabase:', err);
+                        });
                     }
                 });
             },
@@ -123,24 +103,12 @@ export const useTaskStore = create<TaskState>()(
             fetchFromSupabase: async () => {
                 const { data: auth } = await supabase.auth.getUser();
                 if (!auth.user) return;
-                const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: true });
-                if (error) { console.error('Supabase fetch tasks:', error); return; }
-                if (data) {
-                    const tasks: Task[] = data.map((r: Record<string, unknown>) => ({
-                        id: r.id as string,
-                        title: r.title as string,
-                        description: (r.description as string) || undefined,
-                        subjectId: (r.subject_id as string) || undefined,
-                        tag: r.tag as string,
-                        tagColor: r.tag_color as string,
-                        priority: r.priority as TaskPriority,
-                        status: r.status as TaskStatus,
-                        date: (r.date as string) || null,
-                        durationMinutes: (r.duration_minutes as number) || null,
-                        pinned: (r.pinned as boolean) || false,
-                        createdAt: new Date(r.created_at as string).getTime(),
-                    }));
+                try {
+                    const tasks = await tasksService.getTasks(auth.user.id);
+                    tasks.sort((a, b) => a.createdAt - b.createdAt);
                     set({ tasks });
+                } catch (err) {
+                    console.error('Failed to fetch tasks from Supabase:', err);
                 }
             },
         }),

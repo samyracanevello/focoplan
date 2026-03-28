@@ -1,8 +1,25 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useEffect } from 'react';
 import { X, CheckSquare } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import Button from './Button';
-import { useTaskStore, Task, TaskPriority } from '../../store/useTaskStore';
+import { useTaskStore, Task } from '../../store/useTaskStore';
 import { useSubjectsStore } from '../../store/useSubjectsStore';
+
+// --- Zod Schema ---
+const taskSchema = z.object({
+    title: z.string().min(1, 'O título é obrigatório.'),
+    description: z.string().optional(),
+    subjectId: z.string().optional(),
+    tag: z.string().optional(),
+    tagColor: z.string(),
+    priority: z.enum(['low', 'medium', 'high']),
+    date: z.string().optional().nullable(),
+    durationMinutes: z.string().optional().nullable(),
+});
+
+type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskModalProps {
     isOpen: boolean;
@@ -24,61 +41,54 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
     const subjects = useSubjectsStore(state => state.subjects);
     const isEditing = Boolean(editTask);
 
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [subjectId, setSubjectId] = useState('');
-    const [tag, setTag] = useState('');
-    const [tagColor, setTagColor] = useState(tagColors[0].value);
-    const [priority, setPriority] = useState<TaskPriority>('medium');
-    const [date, setDate] = useState('');
-    const [duration, setDuration] = useState('');
+    const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TaskFormData>({
+        resolver: zodResolver(taskSchema),
+        defaultValues: {
+            title: '', description: '', subjectId: '', tag: '', tagColor: tagColors[0].value, priority: 'medium', date: '', durationMinutes: null
+        }
+    });
 
-    // Pre-fill when editing
+    const watchSubjectId = watch('subjectId');
+    const watchTagColor = watch('tagColor');
+    const watchPriority = watch('priority');
+
+    // Pre-fill when editing or reset when opening
     useEffect(() => {
-        if (editTask) {
-            setTitle(editTask.title);
-            setDescription(editTask.description || '');
-            setSubjectId(editTask.subjectId || '');
-            setTag(editTask.tag === 'Geral' ? '' : editTask.tag);
-            setTagColor(editTask.tagColor);
-            setPriority(editTask.priority);
-            setDate(editTask.date || '');
-            setDuration(editTask.durationMinutes ? String(editTask.durationMinutes) : '');
-        } else {
-            setTitle(''); setDescription(''); setSubjectId(''); setTag(''); setDate(''); setDuration('');
-            setTagColor(tagColors[0].value); setPriority('medium');
-        }
-    }, [editTask, isOpen]);
-
-    // When a subject is selected, auto-fill tag and tagColor
-    const handleSubjectChange = (id: string) => {
-        setSubjectId(id);
-        if (id) {
-            const subject = subjects.find(s => s.id === id);
-            if (subject) {
-                setTag(subject.name);
-                // Map subject color to closest tagColor class
-                setTagColor(tagColors[0].value);
+        if (isOpen) {
+            if (editTask) {
+                reset({
+                    title: editTask.title,
+                    description: editTask.description || '',
+                    subjectId: editTask.subjectId || '',
+                    tag: editTask.tag === 'Geral' ? '' : editTask.tag,
+                    tagColor: editTask.tagColor,
+                    priority: editTask.priority,
+                    date: editTask.date || '',
+                    durationMinutes: editTask.durationMinutes ? String(editTask.durationMinutes) : '',
+                });
+            } else {
+                reset({ title: '', description: '', subjectId: '', tag: '', tagColor: tagColors[0].value, priority: 'medium', date: '', durationMinutes: '' });
             }
-        } else {
-            setTag('');
-            setTagColor(tagColors[0].value);
         }
-    };
+    }, [editTask, isOpen, reset]);
 
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        if (!title.trim()) return;
+    // When a subject is selected, auto-fill base tagColor (we leave 'tag' blank so we use subject name as fallback on submit, or user can override)
+    useEffect(() => {
+        if (watchSubjectId) {
+            setValue('tagColor', tagColors[0].value);
+        }
+    }, [watchSubjectId, setValue]);
 
+    const onSubmitForm = (data: TaskFormData) => {
         const payload = {
-            title: title.trim(),
-            description: description.trim() || undefined,
-            subjectId: subjectId || undefined,
-            tag: subjectId ? (subjects.find(s => s.id === subjectId)?.name || tag.trim() || 'Geral') : (tag.trim() || 'Geral'),
-            tagColor,
-            priority,
-            date: date || null,
-            durationMinutes: duration ? parseInt(duration) : null,
+            title: data.title.trim(),
+            description: data.description?.trim() || undefined,
+            subjectId: data.subjectId || undefined,
+            tag: data.subjectId ? (subjects.find(s => s.id === data.subjectId)?.name || data.tag?.trim() || 'Geral') : (data.tag?.trim() || 'Geral'),
+            tagColor: data.tagColor,
+            priority: data.priority,
+            date: data.date || null,
+            durationMinutes: data.durationMinutes ? parseInt(data.durationMinutes, 10) : null,
         };
 
         if (isEditing && editTask) {
@@ -130,7 +140,7 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                         </h2>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4">
                         {/* Title */}
                         <div>
                             <label className="block text-sm font-semibold text-slate-600 mb-1.5">
@@ -138,13 +148,12 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                             </label>
                             <input
                                 type="text"
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
                                 className="input w-full h-11 text-sm"
                                 placeholder="Ex: Estudar Matemática Discreta..."
-                                required
                                 autoFocus
+                                {...register('title')}
                             />
+                            {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
                         </div>
 
                         {/* Description */}
@@ -153,11 +162,10 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                                 Notas / Descrição
                             </label>
                             <textarea
-                                value={description}
-                                onChange={e => setDescription(e.target.value)}
                                 className="input w-full text-sm min-h-[70px] py-2.5 resize-y"
                                 placeholder="Detalhes, links, anotações..."
                                 rows={2}
+                                {...register('description')}
                             />
                         </div>
 
@@ -166,9 +174,8 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                             <div>
                                 <label className="block text-sm font-semibold text-slate-600 mb-1.5">Matéria</label>
                                 <select
-                                    value={subjectId}
-                                    onChange={e => handleSubjectChange(e.target.value)}
                                     className="input w-full h-11 text-sm"
+                                    {...register('subjectId')}
                                 >
                                     <option value="">Sem matéria</option>
                                     {subjects.map(s => (
@@ -186,8 +193,8 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                                             key={c.value}
                                             type="button"
                                             title={c.label}
-                                            onClick={() => setTagColor(c.value)}
-                                            className={`w-7 h-7 rounded-full cursor-pointer transition-all ${c.value.split(' ')[0]} ${tagColor === c.value ? 'ring-4 ring-offset-1 ring-slate-400 scale-110' : 'hover:scale-110'}`}
+                                            onClick={() => setValue('tagColor', c.value)}
+                                            className={`w-7 h-7 rounded-full cursor-pointer transition-all ${c.value.split(' ')[0]} ${watchTagColor === c.value ? 'ring-4 ring-offset-1 ring-slate-400 scale-110' : 'hover:scale-110'}`}
                                         />
                                     ))}
                                 </div>
@@ -200,9 +207,8 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                                 <label className="block text-sm font-semibold text-slate-600 mb-1.5">Data</label>
                                 <input
                                     type="date"
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
                                     className="input w-full h-11 text-sm text-slate-600"
+                                    {...register('date')}
                                 />
                             </div>
                             <div>
@@ -211,11 +217,11 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                                     type="number"
                                     min="1"
                                     max="480"
-                                    value={duration}
-                                    onChange={e => setDuration(e.target.value)}
                                     className="input w-full h-11 text-sm"
                                     placeholder="Ex: 60"
+                                    {...register('durationMinutes')}
                                 />
+                                {errors.durationMinutes && <p className="mt-1 text-xs text-red-500">{errors.durationMinutes.message}</p>}
                             </div>
                         </div>
 
@@ -231,8 +237,8 @@ const TaskModal = ({ isOpen, onClose, editTask }: TaskModalProps) => {
                                     <button
                                         key={p.v}
                                         type="button"
-                                        onClick={() => setPriority(p.v)}
-                                        className={`py-2.5 text-sm font-semibold rounded-xl border-2 transition-all ${priority === p.v ? p.on : `border-pastel-border bg-white ${p.off} hover:border-slate-300`}`}
+                                        onClick={() => setValue('priority', p.v)}
+                                        className={`py-2.5 text-sm font-semibold rounded-xl border-2 transition-all ${watchPriority === p.v ? p.on : `border-pastel-border bg-white ${p.off} hover:border-slate-300`}`}
                                     >
                                         {p.label}
                                     </button>

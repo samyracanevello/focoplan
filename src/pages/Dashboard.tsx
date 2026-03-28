@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Play, TrendingUp, Calendar as CalendarIcon, ArrowRight, Target, Quote } from 'lucide-react';
+import { CheckCircle2, Play, TrendingUp, Calendar as CalendarIcon, ArrowRight, Target, Quote, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { isToday, isFuture } from 'date-fns';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -8,6 +9,7 @@ import { useUserStore } from '../store/useUserStore';
 import { useTaskStore } from '../store/useTaskStore';
 import { usePomodoroStore } from '../store/usePomodoroStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useSubjectsStore } from '../store/useSubjectsStore';
 import { getDailyQuote } from '../data/quotes';
 
 const Dashboard = () => {
@@ -31,10 +33,30 @@ const Dashboard = () => {
         todaySessions.reduce((acc, curr) => acc + curr.durationMinutes, 0),
         [todaySessions]);
 
+    const { subjects } = useSubjectsStore();
+    const topSubjectToday = useMemo(() => {
+        const map: Record<string, number> = {};
+        todaySessions.forEach(s => {
+            if (s.taskId) {
+                const t = tasks.find(tsk => tsk.id === s.taskId);
+                if (t && t.subjectId) {
+                    map[t.subjectId] = (map[t.subjectId] || 0) + s.durationMinutes;
+                }
+            }
+        });
+        const [topId] = Object.entries(map).sort((a, b) => b[1] - a[1])[0] || [null];
+        return topId ? subjects.find(s => s.id === topId) : null;
+    }, [todaySessions, tasks, subjects]);
+
     return (
         <div className="p-8 max-w-7xl mx-auto w-full">
             {/* Greeting */}
-            <div className="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="mb-8 flex flex-col md:flex-row md:items-start md:justify-between gap-4"
+            >
                 <div>
                     <h1 className="text-4xl font-bold text-slate-800 tracking-tight mb-2">
                         Olá, {name || 'Estudante'} <span className="text-pastel-peach">👋</span>
@@ -57,10 +79,15 @@ const Dashboard = () => {
                         </div>
                     </div>
                 )}
-            </div>
+            </motion.div>
 
             {/* Top Grid: Focus CTA + Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8"
+            >
                 {/* Main Focus Area */}
                 <div className="lg:col-span-8">
                     <Card className="h-full bg-gradient-blush-mint text-white border-0 shadow-lg relative overflow-hidden flex flex-col justify-between p-8 md:p-10 min-h-[300px]">
@@ -98,43 +125,65 @@ const Dashboard = () => {
                 </div>
 
                 {/* Stats */}
-                <div className="lg:col-span-4 grid grid-rows-2 gap-6">
-                    <Card className="flex flex-col justify-center p-6 bg-white/70">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-pastel-mint/20 text-emerald-700 rounded-2xl">
-                                <CheckCircle2 size={24} strokeWidth={1.5} />
+                <div className="lg:col-span-4 grid grid-rows-3 gap-4">
+                    <Card className="flex flex-col justify-center p-5 bg-white/70">
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="p-2.5 bg-pastel-mint/20 text-emerald-700 rounded-xl">
+                                <CheckCircle2 size={20} strokeWidth={1.5} />
                             </div>
-                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">Hoje</span>
+                            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-wider">Hoje</span>
                         </div>
                         <div>
-                            <p className="text-slate-500 font-medium text-sm mb-1">Tarefas Concluídas</p>
-                            <h3 className="text-3xl font-bold text-slate-800 tracking-tight">
+                            <p className="text-slate-500 font-medium text-xs mb-0.5">Tarefas Concluídas</p>
+                            <h3 className="text-2xl font-bold text-slate-800 tracking-tight">
                                 {todayTasks.filter(t => t.status === 'completed').length}{' '}
-                                <span className="text-lg text-slate-400 font-medium">/ {todayTasks.length}</span>
+                                <span className="text-sm text-slate-400 font-medium">/ {todayTasks.length}</span>
                             </h3>
                         </div>
                     </Card>
 
-                    <Card className="flex flex-col justify-center p-6 bg-white/70">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-3 bg-pastel-peach/20 text-orange-700 rounded-2xl">
-                                <TrendingUp size={24} strokeWidth={1.5} />
+                    <Card className="flex flex-col justify-center p-5 bg-white/70">
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="p-2.5 bg-pastel-peach/20 text-orange-700 rounded-xl">
+                                <TrendingUp size={20} strokeWidth={1.5} />
                             </div>
-                            <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">Tempo</span>
                         </div>
                         <div>
-                            <p className="text-slate-500 font-medium text-sm mb-1">Foco Hoje</p>
-                            <h3 className="text-3xl font-bold text-slate-800 tracking-tight">
+                            <p className="text-slate-500 font-medium text-xs mb-0.5">Minutos de Foco</p>
+                            <h3 className="text-2xl font-bold text-slate-800 tracking-tight">
                                 {Math.floor(totalFocusMinutesToday / 60)}h{' '}
-                                <span className="text-lg text-slate-400 font-medium">{totalFocusMinutesToday % 60}m</span>
+                                <span className="text-sm text-slate-400 font-medium">{totalFocusMinutesToday % 60}m</span>
+                            </h3>
+                        </div>
+                    </Card>
+
+                    <Card className="flex flex-col justify-center p-5 bg-white/70">
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="p-2.5 bg-pastel-lavender/20 text-purple-700 rounded-xl">
+                                <Star size={20} strokeWidth={1.5} />
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-slate-500 font-medium text-xs mb-0.5">Top Matéria do Dia</p>
+                            <h3 className="text-lg font-bold text-slate-800 tracking-tight truncate">
+                                {topSubjectToday ? (
+                                    <span className="flex items-center gap-1.5"><span className="text-sm">{topSubjectToday.icon}</span> {topSubjectToday.name}</span>
+                                ) : (
+                                    <span className="text-slate-400">Nenhuma ainda</span>
+                                )}
                             </h3>
                         </div>
                     </Card>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Bottom Grid: Today's Tasks + Upcoming */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+            >
                 {/* Today's Tasks */}
                 <div>
                     <div className="flex justify-between items-center mb-4">
@@ -222,7 +271,7 @@ const Dashboard = () => {
                         )}
                     </Card>
                 </div>
-            </div>
+            </motion.div>
         </div>
     );
 };

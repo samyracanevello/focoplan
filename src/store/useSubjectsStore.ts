@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
+import { subjectsService } from '../services/subjectsService';
 
 export interface Subject {
     id: string;
@@ -39,15 +40,8 @@ export const useSubjectsStore = create<SubjectsState>()(
                 // Sync to Supabase
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('subjects').insert({
-                            id: newSubject.id,
-                            user_id: auth.user.id,
-                            name: newSubject.name,
-                            color: newSubject.color,
-                            icon: newSubject.icon,
-                            weekly_goal_hours: newSubject.weeklyGoalHours,
-                        }).then(({ error }) => {
-                            if (error) console.error('Supabase insert subject error:', error);
+                        subjectsService.addSubject(auth.user.id, newSubject).catch((err) => {
+                            console.error('Failed to add subject to Supabase:', err);
                         });
                     }
                 });
@@ -60,13 +54,9 @@ export const useSubjectsStore = create<SubjectsState>()(
 
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        const dbUpdates: Record<string, unknown> = {};
-                        if (updates.name !== undefined) dbUpdates.name = updates.name;
-                        if (updates.color !== undefined) dbUpdates.color = updates.color;
-                        if (updates.icon !== undefined) dbUpdates.icon = updates.icon;
-                        if (updates.weeklyGoalHours !== undefined) dbUpdates.weekly_goal_hours = updates.weeklyGoalHours;
-                        supabase.from('subjects').update(dbUpdates).eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase update subject error:', error); });
+                        subjectsService.updateSubject(auth.user.id, id, updates).catch((err) => {
+                            console.error('Failed to update subject in Supabase:', err);
+                        });
                     }
                 });
             },
@@ -76,8 +66,9 @@ export const useSubjectsStore = create<SubjectsState>()(
 
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('subjects').delete().eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase delete subject error:', error); });
+                        subjectsService.deleteSubject(auth.user.id, id).catch((err) => {
+                            console.error('Failed to delete subject from Supabase:', err);
+                        });
                     }
                 });
             },
@@ -88,22 +79,13 @@ export const useSubjectsStore = create<SubjectsState>()(
                 const { data: auth } = await supabase.auth.getUser();
                 if (!auth.user) return;
 
-                const { data, error } = await supabase
-                    .from('subjects')
-                    .select('*')
-                    .order('created_at', { ascending: true });
-
-                if (error) { console.error('Supabase fetch subjects error:', error); return; }
-                if (data) {
-                    const subjects: Subject[] = data.map((row: Record<string, unknown>) => ({
-                        id: row.id as string,
-                        name: row.name as string,
-                        color: row.color as string,
-                        icon: row.icon as string,
-                        weeklyGoalHours: row.weekly_goal_hours as number,
-                        createdAt: new Date(row.created_at as string).getTime(),
-                    }));
+                try {
+                    const subjects = await subjectsService.getSubjects(auth.user.id);
+                    // Sort locally if needed, getSubjects fetches direct from DB
+                    subjects.sort((a, b) => a.createdAt - b.createdAt);
                     set({ subjects });
+                } catch (err) {
+                    console.error('Failed to fetch subjects from Supabase:', err);
                 }
             },
         }),

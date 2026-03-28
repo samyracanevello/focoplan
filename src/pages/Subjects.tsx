@@ -4,10 +4,24 @@ import {
     GraduationCap, Plus, Trash2, Edit3, Clock,
     X, Check, BookOpen, ChevronRight
 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { motion } from 'framer-motion';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useSubjectsStore, Subject } from '../store/useSubjectsStore';
 import { useTopicsStore } from '../store/useTopicsStore';
+
+// --- Zod Schema ---
+const subjectSchema = z.object({
+    name: z.string().min(1, 'O nome da matéria é obrigatório.'),
+    icon: z.string().min(1),
+    color: z.string().min(1),
+    weeklyGoalHours: z.string().or(z.number())
+});
+
+type SubjectFormData = z.infer<typeof subjectSchema>;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -39,21 +53,26 @@ const SubjectForm = ({ onClose, initial }: SubjectFormProps) => {
     const { addSubject, updateSubject } = useSubjectsStore();
     const isEditing = Boolean(initial);
 
-    const [name, setName] = useState(initial?.name || '');
-    const [icon, setIcon] = useState(initial?.icon || '📚');
-    const [color, setColor] = useState(initial?.color || SUBJECT_COLORS[0]);
-    const [weeklyGoalHours, setWeeklyGoalHours] = useState(
-        initial?.weeklyGoalHours?.toString() || '10'
-    );
+    const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<SubjectFormData>({
+        resolver: zodResolver(subjectSchema),
+        defaultValues: {
+            name: initial?.name || '',
+            icon: initial?.icon || '📚',
+            color: initial?.color || SUBJECT_COLORS[0],
+            weeklyGoalHours: initial?.weeklyGoalHours || 10
+        }
+    });
 
-    const handleSubmit = () => {
-        if (!name.trim()) return;
+    const watchIcon = watch('icon');
+    const watchColor = watch('color');
+    const watchWeeklyGoalHours = watch('weeklyGoalHours');
 
+    const onSubmitForm = (data: SubjectFormData) => {
         const payload = {
-            name: name.trim(),
-            icon,
-            color,
-            weeklyGoalHours: parseInt(weeklyGoalHours) || 10,
+            name: data.name.trim(),
+            icon: data.icon,
+            color: data.color,
+            weeklyGoalHours: typeof data.weeklyGoalHours === 'string' ? parseInt(data.weeklyGoalHours, 10) : data.weeklyGoalHours,
         };
 
         if (isEditing && initial) {
@@ -82,28 +101,30 @@ const SubjectForm = ({ onClose, initial }: SubjectFormProps) => {
 
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: color + '20' }}>
-                            <span className="text-lg">{icon}</span>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm" style={{ background: watchColor + '20' }}>
+                            <span className="text-lg">{watchIcon}</span>
                         </div>
                         <h2 className="text-xl font-bold text-slate-800">
                             {isEditing ? 'Editar Matéria' : 'Nova Matéria'}
                         </h2>
                     </div>
 
-                    {/* Name */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-semibold text-slate-600 mb-1.5">
-                            Nome da Matéria *
-                        </label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            className="input w-full h-11 text-sm"
-                            placeholder="Ex: Matemática, Direito Constitucional..."
-                            autoFocus
-                        />
-                    </div>
+                    {/* Form wrapper */}
+                    <form onSubmit={handleSubmit(onSubmitForm)}>
+                        {/* Name */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-semibold text-slate-600 mb-1.5">
+                                Nome da Matéria *
+                            </label>
+                            <input
+                                type="text"
+                                className="input w-full h-11 text-sm"
+                                placeholder="Ex: Matemática, Direito Constitucional..."
+                                autoFocus
+                                {...register('name')}
+                            />
+                            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>}
+                        </div>
 
                     {/* Emoji picker */}
                     <div className="mb-4">
@@ -115,8 +136,8 @@ const SubjectForm = ({ onClose, initial }: SubjectFormProps) => {
                                 <button
                                     key={e}
                                     type="button"
-                                    onClick={() => setIcon(e)}
-                                    className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all ${icon === e
+                                    onClick={() => setValue('icon', e)}
+                                    className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition-all ${watchIcon === e
                                         ? 'bg-slate-100 ring-2 ring-slate-300 scale-110'
                                         : 'hover:bg-slate-50'
                                         }`}
@@ -137,12 +158,12 @@ const SubjectForm = ({ onClose, initial }: SubjectFormProps) => {
                                 <button
                                     key={c}
                                     type="button"
-                                    onClick={() => setColor(c)}
-                                    className={`w-8 h-8 rounded-full transition-all flex items-center justify-center ${color === c ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'
+                                    onClick={() => setValue('color', c)}
+                                    className={`w-8 h-8 rounded-full transition-all flex items-center justify-center ${watchColor === c ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'
                                         }`}
                                     style={{ backgroundColor: c }}
                                 >
-                                    {color === c && <Check size={14} className="text-white" />}
+                                    {watchColor === c && <Check size={14} className="text-white" />}
                                 </button>
                             ))}
                         </div>
@@ -159,24 +180,24 @@ const SubjectForm = ({ onClose, initial }: SubjectFormProps) => {
                                 min={1}
                                 max={40}
                                 step={1}
-                                value={weeklyGoalHours}
-                                onChange={e => setWeeklyGoalHours(e.target.value)}
                                 className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
+                                {...register('weeklyGoalHours')}
                             />
                             <span className="text-sm font-bold text-slate-700 w-12 text-center bg-slate-50 rounded-lg py-1">
-                                {weeklyGoalHours}h
+                                {watchWeeklyGoalHours}h
                             </span>
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={onClose}>Cancelar</Button>
-                        <Button onClick={handleSubmit} disabled={!name.trim()}>
+                    <div className="flex justify-end gap-3 mt-2">
+                        <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+                        <Button type="submit">
                             {isEditing ? 'Salvar' : 'Criar Matéria'}
                         </Button>
                     </div>
-                </div>
+                </form>
+            </div>
             </div>
         </div>
     );
@@ -342,15 +363,21 @@ const Subjects = () => {
             {/* Grid */}
             {subjects.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {subjects.map(s => (
-                        <SubjectCard
+                    {subjects.map((s, idx) => (
+                        <motion.div
                             key={s.id}
-                            subject={s}
-                            onEdit={() => openEdit(s)}
-                            onDelete={() => handleDelete(s)}
-                            onClick={() => navigate(`/subjects/${s.id}`)}
-                            topicStats={getTopicStats(s.id)}
-                        />
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: idx * 0.05 }}
+                        >
+                            <SubjectCard
+                                subject={s}
+                                onEdit={() => openEdit(s)}
+                                onDelete={() => handleDelete(s)}
+                                onClick={() => navigate(`/subjects/${s.id}`)}
+                                topicStats={getTopicStats(s.id)}
+                            />
+                        </motion.div>
                     ))}
                 </div>
             ) : (

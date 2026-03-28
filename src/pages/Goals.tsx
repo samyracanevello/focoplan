@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { motion } from 'framer-motion';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useGoalsStore, Goal, GoalCategory, GoalStatus, GoalPriority } from '../store/useGoalsStore';
@@ -418,7 +419,16 @@ const Goals = () => {
                 </Card>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    {filtered.map(goal => <GoalCard key={goal.id} goal={goal} />)}
+                    {filtered.map((goal, idx) => (
+                        <motion.div
+                            key={goal.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: idx * 0.05 }}
+                        >
+                            <GoalCard goal={goal} />
+                        </motion.div>
+                    ))}
                 </div>
             )}
 

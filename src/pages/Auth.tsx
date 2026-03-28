@@ -1,32 +1,53 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { BookOpen, User, Lock, Mail, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { useUserStore } from '../store/useUserStore';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 
 type AuthMode = 'login' | 'signup' | 'local';
 
+const loginSchema = z.object({
+    email: z.string().email('Email inválido.'),
+    password: z.string().min(1, 'A senha é obrigatória.')
+});
+
+const signupSchema = z.object({
+    name: z.string().min(2, 'O nome deve ter no mínimo 2 caracteres.'),
+    email: z.string().email('Email inválido.'),
+    password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres.')
+});
+
+const localSchema = z.object({
+    localName: z.string().min(2, 'O nome deve ter no mínimo 2 caracteres.')
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
+type LocalFormData = z.infer<typeof localSchema>;
+
 const Auth = () => {
     const [mode, setMode] = useState<AuthMode>('login');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [localName, setLocalName] = useState('');
-    const [name, setNameInput] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
     const { loginLocal, loginSupabase, signupSupabase } = useUserStore();
-
     const hasSupabase = Boolean(import.meta.env.VITE_SUPABASE_URL);
 
-    const handleSupabaseLogin = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!email.trim() || !password.trim()) return;
+    const loginForm = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
+    const signupForm = useForm<SignupFormData>({ resolver: zodResolver(signupSchema) });
+    const localForm = useForm<LocalFormData>({ resolver: zodResolver(localSchema) });
+
+
+
+    const handleSupabaseLogin = async (data: LoginFormData) => {
         setError(''); setLoading(true);
 
-        const result = await loginSupabase(email, password);
+        const result = await loginSupabase(data.email, data.password);
         setLoading(false);
         if (result.error) {
             setError(result.error === 'Invalid login credentials'
@@ -38,13 +59,10 @@ const Auth = () => {
         }
     };
 
-    const handleSupabaseSignup = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!email.trim() || !password.trim() || !name.trim()) return;
-        if (password.length < 6) { setError('A senha precisa ter pelo menos 6 caracteres.'); return; }
+    const handleSupabaseSignup = async (data: SignupFormData) => {
         setError(''); setLoading(true);
 
-        const result = await signupSupabase(email, password, name);
+        const result = await signupSupabase(data.email, data.password, data.name);
         setLoading(false);
         if (result.error) {
             setError(result.error.includes('already registered')
@@ -56,10 +74,8 @@ const Auth = () => {
         }
     };
 
-    const handleLocalLogin = (e: FormEvent) => {
-        e.preventDefault();
-        if (localName.trim() === '') return;
-        loginLocal(localName);
+    const handleLocalLogin = (data: LocalFormData) => {
+        loginLocal(data.localName);
         navigate('/dashboard');
     };
 
@@ -109,16 +125,16 @@ const Auth = () => {
 
                         {/* ─── Local Mode ─── */}
                         {mode === 'local' && (
-                            <form onSubmit={handleLocalLogin} className="space-y-6">
+                            <form onSubmit={localForm.handleSubmit(handleLocalLogin)} className="space-y-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 mb-1.5 ml-1">Como devemos te chamar?</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <User className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
                                         </div>
-                                        <input type="text" placeholder="Seu nome ou apelido" value={localName}
-                                            onChange={(e) => setLocalName(e.target.value)} required autoFocus className={inputClass} />
+                                        <input type="text" placeholder="Seu nome ou apelido" autoFocus className={inputClass} {...localForm.register('localName')} />
                                     </div>
+                                    {localForm.formState.errors.localName && <p className="mt-1 ml-1 text-xs text-red-500 font-medium">{localForm.formState.errors.localName.message}</p>}
                                 </div>
                                 <Button type="submit" fullWidth size="lg">Acessar FocoPlan <ArrowRight size={18} className="ml-2" /></Button>
                                 {hasSupabase && (
@@ -132,16 +148,16 @@ const Auth = () => {
 
                         {/* ─── Login Mode ─── */}
                         {mode === 'login' && hasSupabase && (
-                            <form onSubmit={handleSupabaseLogin} className="space-y-4">
+                            <form onSubmit={loginForm.handleSubmit(handleSupabaseLogin)} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 mb-1.5 ml-1">Email</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <Mail className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
                                         </div>
-                                        <input type="email" placeholder="seu@email.com" value={email}
-                                            onChange={e => setEmail(e.target.value)} required autoFocus className={inputClass} />
+                                        <input type="email" placeholder="seu@email.com" autoFocus className={inputClass} {...loginForm.register('email')} />
                                     </div>
+                                    {loginForm.formState.errors.email && <p className="mt-1 ml-1 text-xs text-red-500 font-medium">{loginForm.formState.errors.email.message}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 mb-1.5 ml-1">Senha</label>
@@ -149,9 +165,9 @@ const Auth = () => {
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <Lock className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
                                         </div>
-                                        <input type="password" placeholder="••••••••" value={password}
-                                            onChange={e => setPassword(e.target.value)} required className={inputClass} />
+                                        <input type="password" placeholder="••••••••" className={inputClass} {...loginForm.register('password')} />
                                     </div>
+                                    {loginForm.formState.errors.password && <p className="mt-1 ml-1 text-xs text-red-500 font-medium">{loginForm.formState.errors.password.message}</p>}
                                 </div>
 
                                 <Button type="submit" fullWidth size="lg" disabled={loading}>
@@ -179,16 +195,16 @@ const Auth = () => {
 
                         {/* ─── Signup Mode ─── */}
                         {mode === 'signup' && hasSupabase && (
-                            <form onSubmit={handleSupabaseSignup} className="space-y-4">
+                            <form onSubmit={signupForm.handleSubmit(handleSupabaseSignup)} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 mb-1.5 ml-1">Nome</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <User className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
                                         </div>
-                                        <input type="text" placeholder="Seu nome" value={name}
-                                            onChange={e => setNameInput(e.target.value)} required autoFocus className={inputClass} />
+                                        <input type="text" placeholder="Seu nome" autoFocus className={inputClass} {...signupForm.register('name')} />
                                     </div>
+                                    {signupForm.formState.errors.name && <p className="mt-1 ml-1 text-xs text-red-500 font-medium">{signupForm.formState.errors.name.message}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 mb-1.5 ml-1">Email</label>
@@ -196,9 +212,9 @@ const Auth = () => {
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <Mail className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
                                         </div>
-                                        <input type="email" placeholder="seu@email.com" value={email}
-                                            onChange={e => setEmail(e.target.value)} required className={inputClass} />
+                                        <input type="email" placeholder="seu@email.com" className={inputClass} {...signupForm.register('email')} />
                                     </div>
+                                    {signupForm.formState.errors.email && <p className="mt-1 ml-1 text-xs text-red-500 font-medium">{signupForm.formState.errors.email.message}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-600 mb-1.5 ml-1">Senha (min. 6 caracteres)</label>
@@ -206,9 +222,9 @@ const Auth = () => {
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                                             <Lock className="h-5 w-5 text-slate-400" strokeWidth={1.5} />
                                         </div>
-                                        <input type="password" placeholder="••••••••" value={password}
-                                            onChange={e => setPassword(e.target.value)} required minLength={6} className={inputClass} />
+                                        <input type="password" placeholder="••••••••" className={inputClass} {...signupForm.register('password')} />
                                     </div>
+                                    {signupForm.formState.errors.password && <p className="mt-1 ml-1 text-xs text-red-500 font-medium">{signupForm.formState.errors.password.message}</p>}
                                 </div>
 
                                 <Button type="submit" fullWidth size="lg" disabled={loading}>

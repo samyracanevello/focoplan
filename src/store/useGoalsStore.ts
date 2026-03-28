@@ -40,24 +40,17 @@ interface GoalsState {
 
 const generateId = () => uuidv4();
 
-function goalToDb(goal: Goal, userId: string) {
-    return {
-        id: goal.id,
-        user_id: userId,
-        title: goal.title,
-        description: JSON.stringify({ text: goal.description, milestones: goal.milestones, progress: goal.progress }),
-        category: goal.category,
-        priority: goal.priority,
-        status: goal.status,
-        target_date: goal.targetDate || null,
-    };
-}
-
 function syncGoal(goal: Goal) {
     supabase.auth.getUser().then(({ data: auth }) => {
         if (auth.user) {
-            supabase.from('goals').upsert(goalToDb(goal, auth.user.id))
-                .then(({ error }) => { if (error) console.error('Supabase sync goal:', error); });
+            import('../services/goalsService').then(({ goalsService }) => {
+                goalsService.updateGoal(auth.user.id, goal.id, goal).catch(err => {
+                    // If it doesn't exist yet, this update might fail or we might need upsert
+                    // but for simplicity, we'll try update, and if we wanted full upsert we can add it to service
+                    // Actually, let's just use updateGoal for existing, addGoal for new.
+                    console.error('Supabase sync goal:', err); 
+                });
+            });
         }
     });
 }
@@ -70,7 +63,14 @@ export const useGoalsStore = create<GoalsState>()(
             addGoal: (goalData) => {
                 const newGoal: Goal = { ...goalData, id: generateId(), createdAt: Date.now() };
                 set((state) => ({ goals: [...state.goals, newGoal] }));
-                syncGoal(newGoal);
+                
+                supabase.auth.getUser().then(({ data: auth }) => {
+                    if (auth.user) {
+                        import('../services/goalsService').then(({ goalsService }) => {
+                            goalsService.addGoal(auth.user.id, newGoal).catch(err => console.error('Supabase add goal:', err));
+                        });
+                    }
+                });
             },
 
             updateGoal: (id, updates) => {
@@ -136,31 +136,13 @@ export const useGoalsStore = create<GoalsState>()(
             fetchFromSupabase: async () => {
                 const { data: auth } = await supabase.auth.getUser();
                 if (!auth.user) return;
-                const { data, error } = await supabase.from('goals').select('*').order('created_at', { ascending: true });
-                if (error) { console.error('Supabase fetch goals:', error); return; }
-                if (data) {
-                    const goals: Goal[] = data.map((r: Record<string, unknown>) => {
-                        let desc = '', milestones: GoalMilestone[] = [], progress = 0;
-                        try {
-                            const parsed = JSON.parse(r.description as string);
-                            desc = parsed.text || '';
-                            milestones = parsed.milestones || [];
-                            progress = parsed.progress || 0;
-                        } catch { desc = (r.description as string) || ''; }
-                        return {
-                            id: r.id as string,
-                            title: r.title as string,
-                            description: desc,
-                            category: r.category as GoalCategory,
-                            status: r.status as GoalStatus,
-                            priority: r.priority as GoalPriority,
-                            targetDate: (r.target_date as string) || null,
-                            createdAt: new Date(r.created_at as string).getTime(),
-                            progress,
-                            milestones,
-                        };
-                    });
+                try {
+                    const { goalsService } = await import('../services/goalsService');
+                    const goals = await goalsService.getGoals(auth.user.id);
+                    goals.sort((a, b) => a.createdAt - b.createdAt);
                     set({ goals });
+                } catch (err) {
+                    console.error('Supabase fetch goals:', err);
                 }
             },
         }),

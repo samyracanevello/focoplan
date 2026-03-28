@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit3, Check, Clock, Trash2, Calendar, CheckSquare, Search, Star, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/ui/Button';
 import { useTaskStore, Task } from '../store/useTaskStore';
 import { useSubjectsStore } from '../store/useSubjectsStore';
@@ -161,9 +162,15 @@ const Tasks = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.map(task => (
-                                    <tr
+                            <AnimatePresence mode="popLayout">
+                                {filtered.map((task, index) => (
+                                    <motion.tr
                                         key={task.id}
+                                        layout
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.2, delay: index * 0.03 }}
                                         className="border-b border-pastel-border/30 last:border-0 hover:bg-white/60 transition-colors group"
                                     >
                                         {/* Checkbox */}
@@ -274,8 +281,9 @@ const Tasks = () => {
                                                 </button>
                                             </div>
                                         </td>
-                                    </tr>
+                                    </motion.tr>
                                 ))}
+                            </AnimatePresence>
                             </tbody>
                         </table>
                     </div>

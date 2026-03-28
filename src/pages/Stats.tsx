@@ -8,10 +8,12 @@ import { ptBR } from 'date-fns/locale';
 import Card from '../components/ui/Card';
 import { useTaskStore } from '../store/useTaskStore';
 import { usePomodoroStore } from '../store/usePomodoroStore';
+import { useSubjectsStore } from '../store/useSubjectsStore';
 
 const Stats = () => {
     const tasks = useTaskStore(state => state.tasks);
     const { sessions, dailyGoalSessions } = usePomodoroStore();
+    const subjects = useSubjectsStore(state => state.subjects);
 
     // ── Task Stats ──────────────────────────────────────────────────────────
     const totalTasks = tasks.length;
@@ -66,17 +68,29 @@ const Stats = () => {
 
     const maxMinutes = Math.max(...chartData.map(d => d.minutes), 1);
 
-    // ── Task categories ──────────────────────────────────────────────────────
-    const tagCounts = useMemo(() => {
+    // ── Subject Focus Time ───────────────────────────────────────────────────
+    const subjectStats = useMemo(() => {
         const map: Record<string, number> = {};
-        tasks.forEach(t => {
-            const tag = t.tag || 'Sem categoria';
-            map[tag] = (map[tag] || 0) + 1;
+        focusSessions.forEach(s => {
+            if (s.taskId) {
+                const t = tasks.find(tsk => tsk.id === s.taskId);
+                if (t && t.subjectId) {
+                    map[t.subjectId] = (map[t.subjectId] || 0) + s.durationMinutes;
+                } else {
+                    map['unassigned'] = (map['unassigned'] || 0) + s.durationMinutes;
+                }
+            } else {
+                map['unassigned'] = (map['unassigned'] || 0) + s.durationMinutes;
+            }
         });
-        return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    }, [tasks]);
-
-    const tagColors = ['bg-pastel-mint', 'bg-pastel-lavender', 'bg-pastel-peach', 'bg-pastel-coral', 'bg-pastel-amber'];
+        
+        return Object.entries(map).map(([id, mins]) => {
+            if (id === 'unassigned') return { name: 'Geral', color: '#94a3b8', minutes: mins, icon: '☕' };
+            const subj = subjects.find(sub => sub.id === id);
+            if (subj) return { name: subj.name, color: subj.color, minutes: mins, icon: subj.icon };
+            return { name: 'Excluída', color: '#cbd5e1', minutes: mins, icon: '🗑️' };
+        }).sort((a, b) => b.minutes - a.minutes).slice(0, 5);
+    }, [focusSessions, tasks, subjects]);
 
     const formatHm = (min: number) => `${Math.floor(min / 60)}h ${min % 60}m`;
 
@@ -247,30 +261,30 @@ const Stats = () => {
                     </div>
                 </Card>
 
-                {/* Categories */}
+                {/* Subject Time Stats */}
                 <Card className="p-6 bg-white/70">
                     <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <Star size={20} className="text-pastel-amber" /> Por Categoria
+                        <Star size={20} className="text-pastel-amber" /> Top Matérias
                     </h3>
-                    {tagCounts.length === 0 ? (
-                        <p className="text-slate-400 text-sm">Nenhuma tarefa cadastrada ainda.</p>
+                    {subjectStats.length === 0 ? (
+                        <p className="text-slate-400 text-sm">Nenhum ciclo pomodoro focado.</p>
                     ) : (
                         <div className="space-y-4">
-                            {tagCounts.map(([tag, count], i) => {
-                                const pct = Math.round((count / totalTasks) * 100);
+                            {subjectStats.map((st, i) => {
+                                const pct = totalFocusMinutes > 0 ? Math.round((st.minutes / totalFocusMinutes) * 100) : 0;
                                 return (
-                                    <div key={tag}>
+                                    <div key={i}>
                                         <div className="flex justify-between mb-1">
-                                            <span className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                                                <span className={`w-2.5 h-2.5 rounded-full ${tagColors[i % tagColors.length]}`} />
-                                                {tag}
+                                            <span className="text-sm font-medium text-slate-700 flex items-center gap-1.5 opacity-90">
+                                                <span>{st.icon}</span>
+                                                {st.name}
                                             </span>
-                                            <span className="text-sm text-slate-500">{count} ({pct}%)</span>
+                                            <span className="text-sm text-slate-500 font-semibold">{formatHm(st.minutes)} <span className="text-xs font-normal opacity-60">({pct}%)</span></span>
                                         </div>
                                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full rounded-full transition-all duration-700 ${tagColors[i % tagColors.length]}`}
-                                                style={{ width: `${pct}%` }}
+                                                className="h-full rounded-full transition-all duration-700"
+                                                style={{ width: `${pct}%`, backgroundColor: st.color }}
                                             />
                                         </div>
                                     </div>

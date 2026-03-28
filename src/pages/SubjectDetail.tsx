@@ -8,6 +8,16 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useSubjectsStore } from '../store/useSubjectsStore';
 import { useTopicsStore, Topic } from '../store/useTopicsStore';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+// --- Zod Schema ---
+const topicSchema = z.object({
+    title: z.string().min(1, 'O nome do tópico é obrigatório.')
+});
+
+type TopicFormData = z.infer<typeof topicSchema>;
 
 // ─── Topic Item (recursive) ──────────────────────────────────────────────────
 
@@ -21,7 +31,11 @@ const TopicItem = ({ topic, allTopics, depth }: TopicItemProps) => {
     const { toggleTopic, addTopic, deleteTopic } = useTopicsStore();
     const [expanded, setExpanded] = useState(true);
     const [adding, setAdding] = useState(false);
-    const [newTitle, setNewTitle] = useState('');
+
+    const { register, handleSubmit, reset } = useForm<TopicFormData>({
+        resolver: zodResolver(topicSchema),
+        defaultValues: { title: '' }
+    });
 
     const children = allTopics
         .filter(t => t.parentId === topic.id)
@@ -32,10 +46,9 @@ const TopicItem = ({ topic, allTopics, depth }: TopicItemProps) => {
     const childrenCompleted = children.filter(c => c.completed).length;
     const childrenTotal = children.length;
 
-    const handleAdd = () => {
-        if (!newTitle.trim()) return;
-        addTopic({ subjectId: topic.subjectId, parentId: topic.id, title: newTitle.trim(), order: 0, completed: false });
-        setNewTitle('');
+    const handleAdd = (data: TopicFormData) => {
+        addTopic({ subjectId: topic.subjectId, parentId: topic.id, title: data.title.trim(), order: 0, completed: false });
+        reset();
         setAdding(false);
         setExpanded(true);
     };
@@ -110,23 +123,22 @@ const TopicItem = ({ topic, allTopics, depth }: TopicItemProps) => {
 
             {/* Inline add form */}
             {adding && (
-                <div className={`flex items-center gap-2 py-1.5 px-3 ${depth > 0 ? 'ml-12' : 'ml-6'}`}>
+                <form onSubmit={handleSubmit(handleAdd)} className={`flex items-center gap-2 py-1.5 px-3 ${depth > 0 ? 'ml-12' : 'ml-6'}`}>
                     <input
                         type="text"
-                        value={newTitle}
-                        onChange={e => setNewTitle(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') setAdding(false); }}
                         className="flex-1 input h-8 text-sm"
                         placeholder="Nome do subtópico..."
                         autoFocus
+                        {...register('title')}
+                        onKeyDown={e => { if (e.key === 'Escape') setAdding(false); }}
                     />
-                    <button onClick={handleAdd} className="px-2.5 py-1 text-xs font-semibold bg-pastel-mint/10 text-pastel-mint rounded-lg hover:bg-pastel-mint/20 transition-colors">
+                    <button type="submit" className="px-2.5 py-1 text-xs font-semibold bg-pastel-mint/10 text-pastel-mint rounded-lg hover:bg-pastel-mint/20 transition-colors">
                         OK
                     </button>
-                    <button onClick={() => setAdding(false)} className="px-2 py-1 text-xs text-slate-400 hover:text-slate-600">
+                    <button type="button" onClick={() => setAdding(false)} className="px-2 py-1 text-xs text-slate-400 hover:text-slate-600">
                         ✕
                     </button>
-                </div>
+                </form>
             )}
 
             {/* Children */}
@@ -151,7 +163,10 @@ const SubjectDetail = () => {
     const allTopics = useTopicsStore(state => state.topics.filter(t => t.subjectId === id));
     const { addTopic } = useTopicsStore();
 
-    const [newTitle, setNewTitle] = useState('');
+    const { register, handleSubmit, reset } = useForm<TopicFormData>({
+        resolver: zodResolver(topicSchema),
+        defaultValues: { title: '' }
+    });
 
     // Redirect if subject not found
     if (!subject) {
@@ -179,10 +194,9 @@ const SubjectDetail = () => {
         return { total, completed, pct };
     }, [allTopics]);
 
-    const handleAddRoot = () => {
-        if (!newTitle.trim()) return;
-        addTopic({ subjectId: subject.id, parentId: null, title: newTitle.trim(), order: 0, completed: false });
-        setNewTitle('');
+    const handleAddRoot = (data: TopicFormData) => {
+        addTopic({ subjectId: subject.id, parentId: null, title: data.title.trim(), order: 0, completed: false });
+        reset();
     };
 
     return (
@@ -267,19 +281,17 @@ const SubjectDetail = () => {
                 </div>
 
                 {/* Add root topic */}
-                <div className="flex items-center gap-2 mb-4">
+                <form onSubmit={handleSubmit(handleAddRoot)} className="flex items-center gap-2 mb-4">
                     <input
                         type="text"
-                        value={newTitle}
-                        onChange={e => setNewTitle(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleAddRoot(); }}
                         className="flex-1 input h-9 text-sm"
                         placeholder="Adicionar tópico principal..."
+                        {...register('title')}
                     />
-                    <Button size="sm" onClick={handleAddRoot} disabled={!newTitle.trim()}>
+                    <Button type="submit" size="sm">
                         <Plus size={14} className="mr-1" /> Adicionar
                     </Button>
-                </div>
+                </form>
 
                 {/* Topic tree */}
                 {rootTopics.length > 0 ? (

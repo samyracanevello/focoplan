@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import KeyboardShortcuts from '../ui/KeyboardShortcuts';
@@ -83,9 +84,18 @@ const Layout = () => {
 
             <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
                 <Topbar />
-                <main className="flex-1 overflow-y-auto page-enter">
-                    <Outlet />
-                </main>
+                <AnimatePresence mode="wait">
+                    <motion.main 
+                        key={pathname}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex-1 overflow-y-auto"
+                    >
+                        <Outlet />
+                    </motion.main>
+                </AnimatePresence>
             </div>
 
             <KeyboardShortcuts />

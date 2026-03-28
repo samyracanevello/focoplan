@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
+import { topicsService } from '../services/topicsService';
 
 export interface Topic {
     id: string;
@@ -38,15 +39,9 @@ export const useTopicsStore = create<TopicsState>()(
 
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('topics').insert({
-                            id: newTopic.id,
-                            user_id: auth.user.id,
-                            subject_id: newTopic.subjectId,
-                            parent_id: newTopic.parentId,
-                            title: newTopic.title,
-                            completed: newTopic.completed,
-                            order: newTopic.order,
-                        }).then(({ error }) => { if (error) console.error('Supabase insert topic:', error); });
+                        topicsService.addTopic(auth.user.id, newTopic).catch((err) => {
+                            console.error('Failed to add topic to Supabase:', err);
+                        });
                     }
                 });
             },
@@ -57,15 +52,9 @@ export const useTopicsStore = create<TopicsState>()(
                 }));
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        const db: Record<string, unknown> = {};
-                        if (updates.title !== undefined) db.title = updates.title;
-                        if (updates.completed !== undefined) db.completed = updates.completed;
-                        if (updates.order !== undefined) db.order = updates.order;
-                        if (updates.parentId !== undefined) db.parent_id = updates.parentId;
-                        if (Object.keys(db).length > 0) {
-                            supabase.from('topics').update(db).eq('id', id)
-                                .then(({ error }) => { if (error) console.error('Supabase update topic:', error); });
-                        }
+                        topicsService.updateTopic(auth.user.id, id, updates).catch((err) => {
+                            console.error('Failed to update topic in Supabase:', err);
+                        });
                     }
                 });
             },
@@ -81,9 +70,10 @@ export const useTopicsStore = create<TopicsState>()(
 
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        // Supabase CASCADE handles children via FK
-                        supabase.from('topics').delete().eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase delete topic:', error); });
+                        // Supabase CASCADE handles children via FK, but we delete the root one explicitly
+                        topicsService.deleteTopic(auth.user.id, id).catch((err) => {
+                            console.error('Failed to delete topic from Supabase:', err);
+                        });
                     }
                 });
             },
@@ -97,8 +87,9 @@ export const useTopicsStore = create<TopicsState>()(
                 }));
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('topics').update({ completed: newCompleted }).eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase toggle topic:', error); });
+                        topicsService.updateTopic(auth.user.id, id, { completed: newCompleted }).catch((err) => {
+                            console.error('Failed to toggle topic completed in Supabase:', err);
+                        });
                     }
                 });
             },
@@ -109,8 +100,9 @@ export const useTopicsStore = create<TopicsState>()(
                 }));
                 supabase.auth.getUser().then(({ data: auth }) => {
                     if (auth.user) {
-                        supabase.from('topics').update({ order: newOrder }).eq('id', id)
-                            .then(({ error }) => { if (error) console.error('Supabase reorder topic:', error); });
+                        topicsService.updateTopic(auth.user.id, id, { order: newOrder }).catch((err) => {
+                            console.error('Failed to reorder topic in Supabase:', err);
+                        });
                     }
                 });
             },
@@ -122,19 +114,12 @@ export const useTopicsStore = create<TopicsState>()(
             fetchFromSupabase: async () => {
                 const { data: auth } = await supabase.auth.getUser();
                 if (!auth.user) return;
-                const { data, error } = await supabase.from('topics').select('*').order('order', { ascending: true });
-                if (error) { console.error('Supabase fetch topics:', error); return; }
-                if (data) {
-                    const topics: Topic[] = data.map((r: Record<string, unknown>) => ({
-                        id: r.id as string,
-                        subjectId: r.subject_id as string,
-                        parentId: (r.parent_id as string) || null,
-                        title: r.title as string,
-                        completed: r.completed as boolean,
-                        order: r.order as number,
-                        createdAt: new Date(r.created_at as string).getTime(),
-                    }));
+                try {
+                    const topics = await topicsService.getTopics(auth.user.id);
+                    topics.sort((a, b) => a.order - b.order);
                     set({ topics });
+                } catch (err) {
+                    console.error('Failed to fetch topics from Supabase:', err);
                 }
             },
         }),

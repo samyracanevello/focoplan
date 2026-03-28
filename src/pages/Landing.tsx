@@ -100,7 +100,7 @@ const Landing = () => {
 
                     <h1 className="text-5xl md:text-7xl font-black text-slate-800 mb-6 tracking-tight leading-[1.1]">
                         Planeje seus estudos com{' '}
-                        <span className="text-gradient bg-gradient-to-r from-pastel-coral via-pastel-blush to-pastel-mint bg-clip-text text-transparent">
+                        <span className="text-gradient">
                             calma e foco
                         </span>.
                     </h1>
@@ -127,12 +127,12 @@ const Landing = () => {
             <motion.section {...fadeUp} className="pb-24 px-6">
                 <div className="max-w-5xl mx-auto">
                     <div className="p-2 md:p-3 rounded-[28px] bg-white/50 border border-white/40 shadow-2xl shadow-slate-200/50 backdrop-blur-sm">
-                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[20px] overflow-hidden aspect-[16/10] relative">
-                            <div className="absolute inset-0 flex items-center justify-center flex-col text-white/40">
-                                <BookOpen size={56} className="mb-3 text-pastel-mint/60" />
-                                <p className="text-lg font-medium">Dashboard do FocoPlan</p>
-                                <p className="text-sm text-white/25 mt-1">Tarefas • Pomodoro • Flashcards • Analytics</p>
-                            </div>
+                        <div className="rounded-[20px] overflow-hidden aspect-[16/10] relative bg-slate-100 flex items-center justify-center">
+                            <img 
+                                src="/dashboard-preview.png" 
+                                alt="Dashboard do FocoPlan" 
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                     </div>
                 </div>
@@ -144,7 +144,7 @@ const Landing = () => {
                     <motion.div {...fadeUp} className="text-center mb-16">
                         <h2 className="text-3xl md:text-5xl font-bold text-slate-800 mb-4 tracking-tight">
                             Tudo que você precisa,{' '}
-                            <span className="text-gradient bg-gradient-to-r from-pastel-coral to-pastel-mint bg-clip-text text-transparent">
+                            <span className="text-gradient">
                                 nada que não precisa
                             </span>.
                         </h2>

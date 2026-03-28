@@ -1,11 +1,42 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FocoPlan - Calm Productivity</title>
+
+  <!-- SEO -->
+  <title>FocoPlan — Organize seus estudos com calma e foco</title>
+  <meta name="description" content="O FocoPlan une gestão de tarefas, calendário, técnica Pomodoro e flashcards em um ambiente visualmente tranquilo para maximizar seu rendimento sem causar estresse." />
+  <meta name="keywords" content="estudo, produtividade, pomodoro, flashcards, organização, foco, planejador" />
+  <meta name="author" content="Samyra Canevello" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://focoplan.tech/" />
+
+  <!-- Open Graph (WhatsApp, Instagram, Facebook) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://focoplan.tech/" />
+  <meta property="og:title" content="FocoPlan — Organize seus estudos com calma e foco" />
+  <meta property="og:description" content="Gestão de tarefas, Pomodoro, flashcards e metas — tudo em uma interface premium desenhada para estudantes." />
+  <meta property="og:image" content="https://focoplan.tech/icon-512.png" />
+  <meta property="og:locale" content="pt_BR" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FocoPlan — Organize seus estudos com calma e foco" />
+  <meta name="twitter:description" content="Gestão de tarefas, Pomodoro, flashcards e metas — tudo em uma interface premium desenhada para estudantes." />
+  <meta name="twitter:image" content="https://focoplan.tech/icon-512.png" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#8FC4B0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="FocoPlan" />
+  <link rel="apple-touch-icon" href="/icon-512.png" />
+
+  <!-- Favicon & Fonts -->
+  <link rel="icon" type="image/png" href="/icon-512.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -24,6 +55,14 @@
   </script>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 
 </html>

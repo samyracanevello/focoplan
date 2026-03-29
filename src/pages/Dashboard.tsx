@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { CheckCircle2, Play, TrendingUp, Calendar as CalendarIcon, ArrowRight, Target, Quote, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { isToday, isFuture } from 'date-fns';
+import { isToday, isFuture, parseISO } from 'date-fns';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { useUserStore } from '../store/useUserStore';
@@ -20,10 +20,10 @@ const Dashboard = () => {
     const showQuotes = useSettingsStore(s => s.appearance.showMotivationalQuotes);
     const dailyQuote = getDailyQuote();
 
-    const todayTasks = useMemo(() => tasks.filter(t => t.date && isToday(new Date(t.date))), [tasks]);
+    const todayTasks = useMemo(() => tasks.filter(t => t.date && isToday(parseISO(t.date))), [tasks]);
     const pendingTodayTasks = useMemo(() => todayTasks.filter(t => t.status === 'pending'), [todayTasks]);
     const upcomingTasks = useMemo(() =>
-        tasks.filter(t => t.date && isFuture(new Date(t.date)) && t.status === 'pending').slice(0, 3),
+        tasks.filter(t => t.date && isFuture(parseISO(t.date)) && t.status === 'pending').slice(0, 3),
         [tasks]);
 
     const todaySessions = useMemo(() =>

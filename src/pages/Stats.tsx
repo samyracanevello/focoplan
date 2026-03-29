@@ -3,7 +3,7 @@ import {
     CheckCircle2, Clock, Flame, BarChart3,
     Trophy, Star, Zap
 } from 'lucide-react';
-import { isToday, isThisWeek, isThisMonth, format, subDays, eachDayOfInterval } from 'date-fns';
+import { isToday, isThisWeek, isThisMonth, format, subDays, eachDayOfInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import Card from '../components/ui/Card';
 import { useTaskStore } from '../store/useTaskStore';
@@ -21,9 +21,9 @@ const Stats = () => {
     const pendingTasks = tasks.filter(t => t.status === 'pending').length;
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    const todayCompleted = tasks.filter(t => t.status === 'completed' && t.date && isToday(new Date(t.date))).length;
-    const weekCompleted = tasks.filter(t => t.status === 'completed' && t.date && isThisWeek(new Date(t.date), { locale: ptBR })).length;
-    const monthCompleted = tasks.filter(t => t.status === 'completed' && t.date && isThisMonth(new Date(t.date))).length;
+    const todayCompleted = tasks.filter(t => t.status === 'completed' && t.date && isToday(parseISO(t.date))).length;
+    const weekCompleted = tasks.filter(t => t.status === 'completed' && t.date && isThisWeek(parseISO(t.date), { locale: ptBR })).length;
+    const monthCompleted = tasks.filter(t => t.status === 'completed' && t.date && isThisMonth(parseISO(t.date))).length;
 
     // ── Pomodoro Stats ───────────────────────────────────────────────────────
     const focusSessions = sessions.filter(s => s.type === 'focus');
